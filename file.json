@@ -1,0 +1,12 @@
+{ location: { type: 'Point', coordinates: [ -110.8571443, 32.4586858 ] },
+  diffrence: '03:22:19',
+  _id: 5cee3b7fca34b131e75f0b69,
+  userId: 5cee34bfbc7f0030140cc7db,
+  name: 'vivek',
+  date: '05/29/2019',
+  timeLog: 
+   [ { in: '1:27:51 pm', out: '1:28:05 pm' },
+     { in: '1:28:08 pm', out: '3:06:27 pm' },
+     { in: '3:06:36 pm', out: '4:50:22 pm' },
+     { in: '5:21:23 pm', out: null } ],
+  __v: 0 }
