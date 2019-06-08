@@ -13,36 +13,47 @@ require("moment-duration-format");
 
 attendenceController.fillAttendence = function(req , res){
 	console.log("req body of fill attendence " , req.body);
+	todaysDate = new Date();
+	todaysMomentDate = moment(todaysDate).format('L')
+	console.log(todaysDate);
+
 	presentDate = moment().format('L');	
 	console.log("req.body.previousTimeLog =========+>", req.body.previousTimeLog.date == null);
 	if(req.body.previousTimeLog.date != null && req.body.previousTimeLog.time != null){
-		console.log("req.body.previousLogTime.date ====>" , req.body.previousTimeLog.date);
-		attendenceModel.findOne({userId: req.body.userId , date: req.body.previousTimeLog.date} , (err , foundLog)=>{
-			if(err){
-				res.status(404).send(err);
-			}
-			else if(foundLog == null){
-				res.status(500).send("Your Previous Log is not valid");
-			}
-			else{
-				console.log("updated lOg ========+>" , foundLog);
-				var lastLog = foundLog.timeLog.length - 1;
-				foundLog.timeLog[lastLog].out = req.body.previousTimeLog.time;
-				foundLog = calculateDiffrence(foundLog , lastLog);
+		if(req.body.previousTimeLog.date > todaysMomentDate){
+			res.json({
+			 	message: "the previous log date is not noot proper"
+			});	
+		}
+		else{
+			console.log("req.body.previousLogTime.date ====>" , req.body.previousTimeLog.date);
+			attendenceModel.findOne({userId: req.body.userId , date: req.body.previousTimeLog.date} , (err , foundLog)=>{
+				if(err){
+					res.status(404).send(err);
+				}
+				else if(foundLog == null){
+					res.status(500).send("Your Previous Log is not valid");
+				}
+				else{
+					console.log("updated lOg ========+>" , foundLog);
+					var lastLog = foundLog.timeLog.length - 1;
+					foundLog.timeLog[lastLog].out = req.body.previousTimeLog.time;
+					foundLog = calculateDiffrence(foundLog , lastLog);
 
 
-				attendenceModel.findOneAndUpdate({userId: req.body.userId , date: req.body.previousTimeLog.date} , {$set: foundLog} ,{upsert:true , new: true})
-				.exec((err , updatedLog)=>{
-					if(err){
-						res.status(404).send(err);
-					}
-					else{
-						console.log("updated lOg ========+>" , updatedLog);
-					}
-					attendenceCallBackFunction();
-				});
-			}
-		});
+					attendenceModel.findOneAndUpdate({userId: req.body.userId , date: req.body.previousTimeLog.date} , {$set: foundLog} ,{upsert:true , new: true})
+					.exec((err , updatedLog)=>{
+						if(err){
+							res.status(404).send(err);
+						}
+						else{
+							console.log("updated lOg ========+>" , updatedLog);
+						}
+						attendenceCallBackFunction();
+					});
+				}
+			});
+		}
 	}
 	else{
 		attendenceModel.find({userId: req.body.userId})
@@ -322,7 +333,21 @@ attendenceController.getTodaysAttendenceByDate = function(req , res){
 	});	
 }
 attendenceController.getTodaysAttendenceByDateAndId = function(req , res){
-	
+	console.log("checking date ");
+	di = new Date();
+	dii = moment(di).format('L')
+	console.log(di);
+
+	if(dii < req.body.date){
+		res.send(["ajj ni tarikh nani che" , dii , req.body.date]);
+	}
+	else if(dii > req.body.date){
+		res.send(["aaj ni tarikh moti che" , dii , req.body.date]);
+	}
+	else{
+		res.send(["equal" , dii , req.body.date]);
+	}
+	// res.send(dii);	
 	
 }
 function addTime(time){
@@ -341,6 +366,7 @@ function addTime(time){
 attendenceController.checkAttendenceIntervalVise = function(req , res){
 	// var api = req
 	// console.log("ype of req.body ==> " , typeof req.body);
+	
 	if(typeof req.body == "object"){
 		var api = [];
 		api.push(req.body);
@@ -348,7 +374,8 @@ attendenceController.checkAttendenceIntervalVise = function(req , res){
 	}
 	
 	console.log("request body =====================> " , req.body);
-// console.log(req.body)
+
+	
 
 	flag = 1;
 	presentDate = moment().format('L');
