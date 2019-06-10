@@ -37,6 +37,7 @@ attendenceController.fillAttendence = function(req , res){
 				else{
 					console.log("updated lOg ========+>" , foundLog);
 					var lastLog = foundLog.timeLog.length - 1;
+
 					foundLog.timeLog[lastLog].out = req.body.previousTimeLog.time;
 					foundLog = calculateDiffrence(foundLog , lastLog);
 
@@ -66,7 +67,19 @@ attendenceController.fillAttendence = function(req , res){
 				res.status(404).send(err);
 			}
 			else if(foundLog.length == 0){
-				newAttendence();
+				req.body =  newAttendence(req.body);
+				var attendence = new attendenceModel(req.body);
+				attendence.save((err , savedAttendence)=>{
+						if(err){
+							console.log("hiii error");
+							res.status(500).send(err);
+						}
+						else{
+							console.log("hiii saved");
+							console.log(savedAttendence);
+							res.status(200).send(savedAttendence);
+						}
+				});
 			}
 			else{
 
@@ -153,6 +166,7 @@ attendenceController.fillAttendence = function(req , res){
 						in :  presentTime
 					};
 					foundAttendence.status = "Present";
+					foundAttendence.time = presentTime;
 					foundAttendence.timeLog.push(arr);
 					foundAttendence.deviceName = req.body.deviceName;
 					attendenceModel.findOneAndUpdate({_id: foundAttendence._id} , {$set: foundAttendence} , {upsert: true, new: true} , (err , updatedAttendence)=>{
@@ -185,55 +199,54 @@ attendenceController.fillAttendence = function(req , res){
 
 					}
 				else{
-					newAttendence();
+					req.body =  newAttendence(req.body);
+					console.log("hiii ");
+					var attendence = new attendenceModel(req.body);
+					attendence.save((err , savedAttendence)=>{
+						if(err){
+							console.log("hiii error");
+							res.status(500).send(err);
+						}
+						else{
+							console.log("hiii saved");
+							console.log(savedAttendence);
+							res.status(200).send(savedAttendence);
+						}
+					});
 				}
 			});
 		}
 		});
 	}
 	
-	function newAttendence(){
-		req.body = {
-			time: moment().format('h:mm:ss a'),
-			deviceName: req.body.deviceName,
-			status: "Present",
-			userId : req.body.userId,
-			name : req.body.name,
-			date : presentDate,
-			location : req.body.location,
-			wifiName: req.body.wifiName,
-			timeLog : {
-				in : moment().format('h:mm:ss a')
-			}
+}
+function newAttendence(body){
+	console.log("body in new attendence ===============+>" , body);
+	body = {
+		time: moment().format('h:mm:ss a'),
+		deviceName: body.deviceName,
+		status: "Present",
+		userId : body.userId,
+		// name : body.name,
+		date : presentDate,
+		location : body.location,
+		wifiName: body.wifiName,
+		timeLog : {
+			in : moment().format('h:mm:ss a')
 		}
-		console.log("proper working =======> body " , req.body);
-		var attendence = new attendenceModel(req.body);
-		attendence.save((err , savedAttendence)=>{
-			if(err){
-				res.status(500).send(err);
-			}
-			else{
-				/*absentLogModel.findOneAndUpdate({userId: savedAttendence.userId , date: moment().format('L')} , {attendenceId: savedAttendence._id} , {upsert: true,new: true}) 
-							// .populate('attendenceId userId')
-							.exec((err , updatedAbsentLog)=>{
-								if(err)
-									res.send(err);
-								else
-									console.log("console of updatedAbsentLog =======================>" , updatedAbsentLog);
-
-							});
-							userModel.findOne({_id: savedAttendence.userId})
-							.exec((err , foundUser)=>{
-								if(foundUser.deviceName != savedAttendence.deviceName){
-									sendEmail(foundUser.name);
-								}
-				});*/
-				console.log(savedAttendence);
-				res.status(200).send(savedAttendence);
-
-			}
-		});
 	}
+	console.log("proper working =======> body " , body);
+	return body;
+		// var attendence = new attendenceModel(req.body);
+		// attendence.save((err , savedAttendence)=>{
+		// 	if(err){
+		// 		res.status(500).send(err);
+		// 	}
+		// 	else{
+		// 		console.log(savedAttendence);
+		// 		res.status(200).send(savedAttendence);
+		// 	}
+		// });
 }
 function sendEmail(name , message , email){
 	console.log("send email ***NAME ====>" , name , " ******MESSAGE =====>" , message , "*************email ==> " , email);
@@ -351,13 +364,12 @@ attendenceController.getTodaysAttendenceByDateAndId = function(req , res){
 	
 }
 function addTime(time){
-
-	console.log("hello in add time function ");
+	console.log("hello in add time function");
 	var minutes = 15;
 	// var exit = moment().format('h:mm:ss a');
-	 var updatedTime = moment(time, "hh:mm:ss a")
-        .add(minutes, 'minutes')
-        .format('h:mm:ss a');
+	var updatedTime = moment(time, "hh:mm:ss a")
+	.add(minutes, 'minutes')
+	.format('hh:mm:ss a');
 	console.log("return Date ===> " , updatedTime);
 	return updatedTime;
 }
@@ -372,11 +384,7 @@ attendenceController.checkAttendenceIntervalVise = function(req , res){
 		api.push(req.body);
 		req.body = api; 
 	}
-	
-	console.log("request body =====================> " , req.body);
-
-	
-
+	console.log("request body of  checkAttendenceIntervalVise=====================> " , req.body);
 	flag = 1;
 	presentDate = moment().format('L');
 	presentTime = moment().format('h:mm:ss a');
@@ -385,24 +393,52 @@ attendenceController.checkAttendenceIntervalVise = function(req , res){
 		console.log("in if");
 		attendenceModel.findOne({userId: req.body[0].userId})
 		.exec((err , foundLog)=>{
-			console.log("found log ============================>"  , foundLog);
-			time = foundLog.time;
-			foundLog.time =   addTime(time);
-			foundLog.location.coordinates = req.body[0].location.coordinates;
-			foundLog.deviceName = req.body[0].deviceName;
-			foundLog.wifiName = req.body[0].wifiName;
-			attendenceModel.findOneAndUpdate({userId: foundLog.userId} , foundLog , {upsert: true , new: true} , (err , savedLog)=>{
-				if(err){
-					res.status(500).send(err);
-				}else{
-					console.log("savedLoged ===========================>" , savedLog);
-					console.log("20000");
-					message = "Updated Successfully";
-					res.json({
-						message: "Updated Successfully"
-					});
+		 	if(err){
+		 		res.send(500).send(err);
+		 	}
+		 	else if(foundLog == null){
+		 		console.log("req . body =============>" , req.body);	
+		 		var body = {
+		 			time: presentTime,
+		 			location : req.body[0].location,
+		 			deviceName : req.body[0].deviceName,
+		 			wifiName : req.body[0].wifiName,
+		 			userId : req.body[0].userId,
 				}
-			});
+		 		req.body = newAttendence(body);
+		 		var attendence = new attendenceModel(req.body);
+		 		attendence.save((err , savedAttendence)=>{
+		 			if(err){
+		 				console.log("hiii error");
+		 				res.status(500).send(err);
+		 			}
+		 			else{
+		 				console.log("hiii saved");
+		 				console.log(savedAttendence);
+		 				res.status(200).send(savedAttendence);
+		 			}
+		 		});
+			}
+		 	else{
+		 		console.log("found log ============================>"  , foundLog);
+		 		time = foundLog.time;
+		 		foundLog.time =   addTime(time);
+		 		foundLog.location.coordinates = req.body[0].location.coordinates;
+		 		foundLog.deviceName = req.body[0].deviceName;
+		 		foundLog.wifiName = req.body[0].wifiName;
+		 		attendenceModel.findOneAndUpdate({userId: foundLog.userId} , foundLog , {upsert: true , new: true} , (err , savedLog)=>{
+		 			if(err){
+		 				res.status(500).send(err);
+		 			}else{
+		 				console.log("savedLoged ===========================>" , savedLog);
+		 				console.log("20000");
+		 				message = "Updated Successfully";
+		 				res.json({
+		 					message: "Updated Successfully"
+		 				});
+		 			}
+		 		});
+		 	}
 		});
 	}
 	else{

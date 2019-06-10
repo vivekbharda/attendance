@@ -30,94 +30,96 @@ mongoose.connect('mongodb://localhost:27017/attendence', {useNewUrlParser: true}
 app.use('/user', userRouter); 	
 app.use('/attendence' , attendenceRouter);
 
-// //Cron job for sending email every two hour... 
-// 	crontab.scheduleJob("* * */2 * * *" , function(){
-// 	var currentTime = moment().format('h:mm:ss a');
-// 	console.log("current Time ===========>" , currentTime);
-// 	currentTime = moment(currentTime, 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
-// 	console.log("current Time in seconds ===============++>" , currentTime);
-// 	var mailOptions;
-// 	var startPart = `<!DOCTYPE html>
-// 	<html>
-// 	<head>
-// 	<title></title>
-// 	</head>
-// 	<body>	
+//Cron job for sending email every two hour... 
+	crontab.scheduleJob("0 * * * *" , function(){
+	var currentTime = moment().format('h:mm:ss a');
+	console.log("current Time ===========>" , currentTime);
+	currentTime = moment(currentTime, 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
+	console.log("current Time in seconds ===============++>" , currentTime);
+	var mailOptions;
+	var startPart = `<!DOCTYPE html>
+	<html>
+	<head>
+	<title></title>
+	</head>
+	<body>	
 
-// 	<table border cellpadding="15px" width="100%" >
-// 	<tr style="background-color: silver;">
-// 	<th >Name</th>
-// 	<th>In/Out Time</th>
-// 	<th>Working Hours</th>
-// 	<th>Current Status</th>		
-// 	</tr>`;
+	<table border cellpadding="15px" width="100%" >
+	<tr style="background-color: silver;">
+	<th >Name</th>
+	<th>In/Out Time</th>
+	<th>Working Hours</th>
+	<th>Current Status</th>		
+	</tr>`;
 
-// 	var endPart = `</table></body></html>`;
-// 	var trPart = null;
-// 	var transporter = nodemailer.createTransport({
-// 		service: 'gmail',
-// 		auth: {
-// 			user: 'pushpraj4132@gmail.com',
-// 			pass: 'livinggod13@'
-// 		}
-// 	});
-// 	attendeceModel.find({date:  moment().format('L') })
-// 	.populate('userId')
-// 	.exec((err , foundData)=>{
+	var endPart = `</table></body></html>`;
+	var trPart = null;
+	var transporter = nodemailer.createTransport({
+		service: 'gmail',
+		auth: {
+			user: 'pushpraj4132@gmail.com',
+			pass: 'livinggod13@'
+		}
+	});
+	attendeceModel.find({date:  moment().format('L') })
+	.populate('userId')
+	.exec((err , foundData)=>{
 
-// 		lodash.forEach(foundData , (singleData)=>{
-// 			var timeLogLength = singleData.timeLog.length - 1;
-// 			singleDataTime = moment(singleData.time , 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
-// 			if(currentTime - currentsingleData > 900 ){
-// 				singleData.timeLog[timeLogLength].out = singleData.time;
-// 			}
-
-
-// 			var str = `<table cellspacing="0"  cellpadding="7px" width="100%" >
-// 			<tr style=" border-right: 1px solid black;" valign="top">
-// 			<th>In</th>
-// 			<th>Out</th>.
-// 			</tr>`;
-// 			singleData.timeLog.forEach(function(arr){
-
-// 					// str += `<tr><td>`+arr.in+`</td><td>`+arr.out+`</td></tr>`; 
-// 				});
-// 			str += `</table>`;
-// 			console.log("single data	 ===============>" , singleData);
-// 			Part = `<tr style="text-align: center;"  valign="top">
-// 			<td>`+singleData.userId.name+`</td>
-// 			<td>`+str+`</td>
-// 			<td>`+singleData.attendenceId.diffrence+`</td>
-// 			<td>`+singleData.attendenceId.status+`</td>
-// 			</tr>`;
-// 			if(trPart == null){
-// 				trPart = Part;
-// 			}else{
-// 				trPart = trPart + Part;
-// 			}
-// 			console.log("tr part =============================>" , trPart);
-// 		});
-// 		console.log("fianl trPart =============================>" , trPart);
-// 		output = startPart + trPart + endPart;
-// 		console.log("output *****************************************>" , output);
-// 		mailOptions = {
-// 			from: 'pushpraj4132@gmail.com',
-// 			to: '160540107031@darshan.ac.in',
-// 			subject: 'Sending Email using Node.js',
-// 			html: output
-// 		}
-// 		transporter.sendMail(mailOptions, function(error, info){
-// 			if (error) {
-// 				console.log("erooooooooooorrrrrr" , error);
-// 			} else {
-// 				console.log('Email sent: ' + info.response);
-// 			}
-// 		});
-// 	} , {
-// 		schedule: true,
-// 		timezone: "Asia/kolkata"
-// 	});
-// });
+		lodash.forEach(foundData , (singleData)=>{
+			var timeLogLength = singleData.timeLog.length - 1;
+			singleDataTime = moment(singleData.time , 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
+			if(currentTime - singleDataTime > 900 ){
+				singleData.timeLog[timeLogLength].out = singleData.time;
+				singleData.status = "Absent";
+			}
+			else if(currentTime - singleDataTime == 900 ){
+				singleData.timeLog[timeLogLength].out = "Check it time out manually ";
+				singleData.status = "Cannot decide";
+			}
+			var str = `<table cellspacing="0"  cellpadding="7px" width="100%" >
+			<tr style=" border-right: 1px solid black;" valign="top">
+			<th>In</th>
+			<th>Out</th>
+			</tr>`;
+			singleData.timeLog.forEach(function(arr){
+				str += `<tr><td>`+arr.in+`</td><td>`+arr.out+`</td></tr>`; 
+			});
+			str += `</table>`;
+			console.log("single data	 ===============>" , singleData);
+			Part = `<tr style="text-align: center;"  valign="top">
+			<td>`+singleData.userId.name+`</td>
+			<td>`+str+`</td>
+			<td>`+singleData.diffrence+`</td>
+			<td>`+singleData.status+`</td>
+			</tr>`;
+			if(trPart == null){
+				trPart = Part;
+			}else{
+				trPart = trPart + Part;
+			}
+			console.log("tr part =============================>" , trPart);
+		});
+		console.log("fianl trPart =============================>" , trPart);
+		output = startPart + trPart + endPart;
+		console.log("output *****************************************>" , output);
+		mailOptions = {
+			from: 'pushpraj4132@gmail.com',
+			to: '160540107031@darshan.ac.in',
+			subject: 'Sending Email using Node.js',
+			html: output
+		}
+		transporter.sendMail(mailOptions, function(error, info){
+			if (error) {
+				console.log("erooooooooooorrrrrr" , error);
+			} else {
+				console.log('Email sent: ' + info.response);
+			}
+		});
+	} , {
+		schedule: true,
+		timezone: "Asia/kolkata"
+	});
+});
 
 // for initializing the absent Schema
 // Runs at 12am daily
