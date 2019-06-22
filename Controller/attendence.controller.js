@@ -169,6 +169,7 @@ attendenceController.fillAttendence = function(req , res){
 					foundAttendence.time = presentTime;
 					foundAttendence.timeLog.push(arr);
 					foundAttendence.deviceName = req.body.deviceName;
+					foundAttendence.absentCount = foundAttendence.absentCount + 1; 
 					attendenceModel.findOneAndUpdate({_id: foundAttendence._id} , {$set: foundAttendence} , {upsert: true, new: true} , (err , updatedAttendence)=>{
 						if(err){
 							res.status(500).send(err);

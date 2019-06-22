@@ -32,6 +32,7 @@ app.use('/attendence' , attendenceRouter);
 
 //Cron job for sending email every two hour... 
 	crontab.scheduleJob("0 * * * *" , function(){
+		mailFlag = 0;
 	var currentTime = moment().format('h:mm:ss a');
 	console.log("current Time ===========>" , currentTime);
 	currentTime = moment(currentTime, 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
@@ -66,55 +67,86 @@ app.use('/attendence' , attendenceRouter);
 	.exec((err , foundData)=>{
 
 		lodash.forEach(foundData , (singleData)=>{
+			var flag = 0;
 			var timeLogLength = singleData.timeLog.length - 1;
 			singleDataTime = moment(singleData.time , 'hh:mm:ss: a').diff(moment().startOf('day'), 'seconds');
 			if(currentTime - singleDataTime > 900 ){
 				singleData.timeLog[timeLogLength].out = singleData.time;
 				singleData.status = "Absent";
+				flag = 1;
+				if(singleData.absentCount != 0){
+					singleData.absentCount = 0;
+					attendeceModel.findOneAndUpdate({_id: singleData._id} , singleData , {upsert: true , new : true} , function(err , updateData){
+						if(err){
+							console.log("eror in updateing user having ID ========+> " , singleData.userId.name);
+						}
+						else{
+							console.log("success in updating User having ID ====>" , singleData.userId.name);
+						}
+					});	
+				}
 			}
 			else if(currentTime - singleDataTime == 900 ){
-				singleData.timeLog[timeLogLength].out = "Check it time out manually ";
+				singleData.timeLog[timeLogLength].out = "Check out time out manually ";
 				singleData.status = "Cannot decide";
+				flag = 1;
 			}
-			var str = `<table cellspacing="0"  cellpadding="7px" width="100%" >
-			<tr style=" border-right: 1px solid black;" valign="top">
-			<th>In</th>
-			<th>Out</th>
-			</tr>`;
-			singleData.timeLog.forEach(function(arr){
-				str += `<tr><td>`+arr.in+`</td><td>`+arr.out+`</td></tr>`; 
-			});
-			str += `</table>`;
-			console.log("single data	 ===============>" , singleData);
-			Part = `<tr style="text-align: center;"  valign="top">
-			<td>`+singleData.userId.name+`</td>
-			<td>`+str+`</td>
-			<td>`+singleData.diffrence+`</td>
-			<td>`+singleData.status+`</td>
-			</tr>`;
-			if(trPart == null){
-				trPart = Part;
-			}else{
-				trPart = trPart + Part;
+			else if(singleData.absentCount != 0){
+				flag = 1;
+				singleData.absentCount = 0;
+				attendeceModel.findOneAndUpdate({_id: singleData._id} , singleData , {upsert: true , new : true} , function(err , updateData){
+					if(err){
+						console.log("eror in updateing user having ID ========+> " , singleData.userId.name);
+					}
+					else{
+						console.log("success in updating User having ID ====>" , singleData.userId.name);
+					}
+				});				
 			}
-			console.log("tr part =============================>" , trPart);
+			if(flag == 1){
+				var str = `<table cellspacing="0"  cellpadding="7px" width="100%" >
+				<tr style=" border-right: 1px solid black;" valign="top">
+				<th>In</th>
+				<th>Out</th>
+				</tr>`;
+				singleData.timeLog.forEach(function(arr){
+					str += `<tr><td>`+arr.in+`</td><td>`+arr.out+`</td></tr>`; 
+				});
+				str += `</table>`;
+				console.log("single data	 ===============>" , singleData);
+				Part = `<tr style="text-align: center;"  valign="top">
+				<td>`+singleData.userId.name+`</td>
+				<td>`+str+`</td>
+				<td>`+singleData.diffrence+`</td>
+				<td>`+singleData.status+`</td>
+				</tr>`;
+				if(trPart == null){
+					trPart = Part;
+				}else{
+					trPart = trPart + Part;
+				}
+				console.log("tr part =============================>" , trPart);
+				mailFlag = 1;
+			}
 		});
 		console.log("fianl trPart =============================>" , trPart);
 		output = startPart + trPart + endPart;
 		console.log("output *****************************************>" , output);
-		mailOptions = {
-			from: 'pushpraj4132@gmail.com',
-			to: '160540107031@darshan.ac.in',
-			subject: 'Sending Email using Node.js',
-			html: output
-		}
-		transporter.sendMail(mailOptions, function(error, info){
-			if (error) {
-				console.log("erooooooooooorrrrrr" , error);
-			} else {
-				console.log('Email sent: ' + info.response);
+		if(mailFlag == 1){
+			mailOptions = {
+				from: 'pushpraj4132@gmail.com',
+				to: 'tirthrajbarot2394@gmail.com',
+				subject: 'Sending Email using Node.js',
+				html: output
 			}
-		});
+			transporter.sendMail(mailOptions, function(error, info){
+				if (error) {
+					console.log("erooooooooooorrrrrr" , error);
+				} else {
+					console.log('Email sent: ' + info.response);
+				}
+			});
+		}
 	} , {
 		schedule: true,
 		timezone: "Asia/kolkata"

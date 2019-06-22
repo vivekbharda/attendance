@@ -19,7 +19,8 @@ var AttendenceSchema = new Schema({
 		type: {	type:  String , default: 'Point'},
 		coordinates: [ Number]
 
-	}
+	},
+	absentCount: {type: String , default: null} 
 });
 AttendenceSchema.index({location: "2dsphere"});
 module.exports = mongoose.model('Attendence' , AttendenceSchema ); 
